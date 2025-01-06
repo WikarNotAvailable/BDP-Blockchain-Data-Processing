@@ -8,7 +8,7 @@ from scripts.local.shared.schemas import features_schema_scaled
 import joblib
 import numpy as np
 
-def feature_selection_with_random_forest(benchmark_data, features, label_column):
+def feature_selection_with_random_forest(benchmark, features, label_column):
     benchmark_data = benchmark.select(features).toPandas()
     label_data = benchmark.select(col(label_column)).toPandas().values.ravel()
 
