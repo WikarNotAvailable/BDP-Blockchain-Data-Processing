@@ -10,8 +10,12 @@ resource "aws_s3_bucket" "bdp_cleaned_transactions" {
   bucket = "bdp-cleaned-transactions"
 }
 
-resource "aws_s3_bucket" "bdp_features" {
-  bucket = "bdp-features"
+resource "aws_s3_bucket" "bdp_scaled_features" {
+  bucket = "bdp-scaled-features"
+}
+
+resource "aws_s3_bucket" "bdp_unscaled_features" {
+  bucket = "bdp-unscaled-features"
 }
 
 resource "aws_s3_bucket" "bdp_metadata" {

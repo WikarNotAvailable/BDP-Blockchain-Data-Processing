@@ -21,7 +21,7 @@ def setup_blockchain_db(spark):
 
 def setup_iceberg_table(spark):
     spark.sql("""
-    CREATE TABLE IF NOT EXISTS glue_catalog.bdp.features (
+    CREATE TABLE IF NOT EXISTS glue_catalog.bdp.scaled_features (
         block_timestamp FLOAT,
         block_number FLOAT,
         transaction_index FLOAT,
@@ -85,7 +85,80 @@ def setup_iceberg_table(spark):
         unique_in_degree FLOAT
     )                                                                      
     PARTITIONED BY (network_name)
-    LOCATION 's3://bdp-features'
+    LOCATION 's3://bdp-scaled-features'
+    TBLPROPERTIES (
+        'table_type' = 'ICEBERG',
+        'write.format.default' = 'parquet',
+        'write.parquet.compression-codec' = 'zstd'
+    )
+    """)
+    
+    spark.sql("""
+    CREATE TABLE IF NOT EXISTS glue_catalog.bdp.unscaled_features (
+        block_timestamp BIGINT,
+        block_number BIGINT,
+        transaction_index BIGINT,
+        fee FLOAT,
+        total_transferred_value FLOAT,
+        total_input_value FLOAT,
+        sent_value FLOAT,
+        received_value FLOAT,
+        network_name BOOLEAN,
+        avg_sent_value FLOAT,
+        avg_received_value FLOAT,
+        avg_total_value_for_sender FLOAT,
+        avg_total_value_for_receiver FLOAT,
+        sum_sent_value FLOAT,
+        sum_received_value FLOAT,
+        sum_total_value_for_sender FLOAT,
+        sum_total_value_for_receiver FLOAT,
+        min_sent_value FLOAT,
+        min_received_value FLOAT,
+        min_total_value_for_sender FLOAT,
+        min_total_value_for_receiver FLOAT,
+        max_sent_value FLOAT,
+        max_received_value FLOAT,
+        max_total_value_for_sender FLOAT,
+        max_total_value_for_receiver FLOAT,
+        median_sent_value FLOAT,
+        median_received_value FLOAT,
+        median_total_value_for_sender FLOAT,
+        median_total_value_for_receiver FLOAT,
+        mode_sent_value FLOAT,
+        mode_received_value FLOAT,
+        mode_total_value_for_sender FLOAT,
+        mode_total_value_for_receiver FLOAT,
+        stddev_sent_value FLOAT,
+        stddev_received_value FLOAT,
+        stddev_total_value_for_sender FLOAT,
+        stddev_total_value_for_receiver FLOAT,
+        num_sent_transactions BIGINT,
+        num_received_transactions BIGINT,
+        avg_time_between_sent_transactions FLOAT,
+        avg_time_between_received_transactions FLOAT,
+        avg_outgoing_speed_count FLOAT,
+        avg_incoming_speed_count FLOAT,
+        avg_outgoing_speed_value FLOAT,
+        avg_incoming_speed_value FLOAT,
+        avg_outgoing_acceleration_count FLOAT,
+        avg_incoming_acceleration_count FLOAT,
+        avg_outgoing_acceleration_value FLOAT,
+        avg_incoming_acceleration_value FLOAT,
+        avg_fee_paid FLOAT,
+        total_fee_paid FLOAT,
+        min_fee_paid FLOAT,
+        max_fee_paid FLOAT,
+        activity_duration_for_sender BIGINT,
+        first_transaction_timestamp_for_sender BIGINT,
+        last_transaction_timestamp_for_sender BIGINT,
+        activity_duration_for_receiver BIGINT,
+        first_transaction_timestamp_for_receiver BIGINT,
+        last_transaction_timestamp_for_receiver BIGINT,
+        unique_out_degree BIGINT,
+        unique_in_degree BIGINT
+    )                                                                      
+    PARTITIONED BY (network_name)
+    LOCATION 's3://bdp-unscaled-features'
     TBLPROPERTIES (
         'table_type' = 'ICEBERG',
         'write.format.default' = 'parquet',
@@ -97,6 +170,7 @@ def setup_iceberg_table(spark):
 cols_dict = {
     "transactions_numeric" : [
         "block_number", 
+        "block_timestamp",
         "transaction_index", 
         "fee", 
         "total_transferred_value", 
@@ -150,9 +224,14 @@ cols_dict = {
         "total_fee_paid",
         "min_fee_paid",
         "max_fee_paid",
-        "activity_duration",
         "unique_out_degree",
-        "unique_in_degree"
+        "unique_in_degree",
+        "activity_duration_for_sender",
+        "activity_duration_for_receiver",
+        "first_transaction_timestamp_for_sender",
+        "first_transaction_timestamp_for_receiver",
+        "last_transaction_timestamp_for_sender",
+        "last_transaction_timestamp_for_receiver"
     ],
 
     "transactions_datetime" : [
@@ -247,6 +326,7 @@ def join_transactions_with_aggregations(transactions_df, aggregations_df, cols_d
         transactions_df["sender_address"] == sender_aggregations["address_for_sender"],
         "left"
     ).drop("address_for_sender")
+
     final_df = transactions_with_sender.join(
         receiver_aggregations,
         transactions_with_sender["receiver_address"] == receiver_aggregations["address_for_receiver"],
@@ -297,13 +377,10 @@ def convert_datetime_to_unixtime(datetime_cols, df):
 
 def prepare_features(transactions_df, aggregations_df, cols_dict):
     transactions_df = convert_datetime_to_unixtime(cols_dict["transactions_datetime"], transactions_df)
-    transactions_df = scale_numeric_variables(cols_dict["transactions_numeric"] + cols_dict["transactions_datetime"], transactions_df)
-
     aggregations_df = convert_datetime_to_unixtime(cols_dict["aggregations_datetime"], aggregations_df).drop("network_name")
-    aggregations_df = scale_numeric_variables(cols_dict["aggregations_numeric"] + cols_dict["aggregations_datetime"], aggregations_df)
 
     transactions_aggregations_df = join_transactions_with_aggregations(transactions_df, aggregations_df, cols_dict)
-    transactions_aggregations_df = encode_string_variables(cols_dict["transactions_string"], transactions_aggregations_df)
+    transactions_aggregations_df = encode_string_variables(cols_dict["transactions_string"], transactions_aggregations_df)   
 
     return transactions_aggregations_df
 
@@ -371,7 +448,18 @@ transactions_aggregations_btc_df = prepare_features(transactions_btc_df, aggrega
 glueContext.write_data_frame.from_catalog(
     frame=transactions_aggregations_btc_df,
     database="bdp",
-    table_name="features",
+    table_name="unscaled_features",
+    additional_options = {
+        "useCatalogSchema": True,
+        "useSparkDataSource": True
+    }
+)
+
+transactions_aggregations_btc_scaled_df = scale_numeric_variables(cols_dict["transactions_numeric"] + cols_dict["aggregations_numeric"], transactions_aggregations_btc_df)    
+glueContext.write_data_frame.from_catalog(
+    frame=transactions_aggregations_btc_scaled_df,
+    database="bdp",
+    table_name="scaled_features",
     additional_options = {
         "useCatalogSchema": True,
         "useSparkDataSource": True
@@ -382,7 +470,18 @@ transactions_aggregations_eth_df = prepare_features(transactions_eth_df, aggrega
 glueContext.write_data_frame.from_catalog(
     frame=transactions_aggregations_eth_df,
     database="bdp",
-    table_name="features",
+    table_name="unscaled_features",
+    additional_options = {
+        "useCatalogSchema": True,
+        "useSparkDataSource": True
+    }
+)
+
+transactions_aggregations_eth_scaled_df = scale_numeric_variables(cols_dict["transactions_numeric"] + cols_dict["aggregations_numeric"], transactions_aggregations_eth_df)
+glueContext.write_data_frame.from_catalog(
+    frame=transactions_aggregations_eth_scaled_df,
+    database="bdp",
+    table_name="scaled_features",
     additional_options = {
         "useCatalogSchema": True,
         "useSparkDataSource": True

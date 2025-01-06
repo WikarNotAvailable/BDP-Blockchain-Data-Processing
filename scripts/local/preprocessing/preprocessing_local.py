@@ -10,6 +10,7 @@ from pyspark.sql.functions import col
 cols_dict = {
     "transactions_numeric" : [
         "block_number", 
+        "block_timestamp",
         "transaction_index", 
         "fee", 
         "total_transferred_value", 
@@ -63,9 +64,14 @@ cols_dict = {
         "total_fee_paid",
         "min_fee_paid",
         "max_fee_paid",
-        "activity_duration",
         "unique_out_degree",
-        "unique_in_degree"
+        "unique_in_degree",
+        "activity_duration_for_sender",
+        "activity_duration_for_receiver",
+        "first_transaction_timestamp_for_sender",
+        "first_transaction_timestamp_for_receiver",
+        "last_transaction_timestamp_for_sender",
+        "last_transaction_timestamp_for_receiver"
     ],
 
     "transactions_datetime" : [
@@ -210,13 +216,10 @@ def convert_datetime_to_unixtime(datetime_cols, df):
 
 def prepare_features(transactions_df, aggregations_df, cols_dict):
     transactions_df = convert_datetime_to_unixtime(cols_dict["transactions_datetime"], transactions_df)
-    transactions_df = scale_numeric_variables(cols_dict["transactions_numeric"] + cols_dict["transactions_datetime"], transactions_df)
-
     aggregations_df = convert_datetime_to_unixtime(cols_dict["aggregations_datetime"], aggregations_df).drop("network_name")
-    aggregations_df = scale_numeric_variables(cols_dict["aggregations_numeric"] + cols_dict["aggregations_datetime"], aggregations_df)
 
     transactions_aggregations_df = join_transactions_with_aggregations(transactions_df, aggregations_df, cols_dict)
-    transactions_aggregations_df = encode_string_variables(cols_dict["transactions_string"], transactions_aggregations_df)
+    transactions_aggregations_df = encode_string_variables(cols_dict["transactions_string"], transactions_aggregations_df)   
 
     return transactions_aggregations_df
 
@@ -235,13 +238,36 @@ transactions_eth_df = spark.read.parquet("data/historical/etl/transactions").fil
 aggregations_btc_df = spark.read.parquet("data/historical/aggregations").filter(col("network_name") == "bitcoin")
 aggregations_eth_df = spark.read.parquet("data/historical/aggregations").filter(col("network_name") == "ethereum")
 
+output_dir = "data/historical/features/unscaled"
 
-output_dir = "data/historical/features"
 transactions_aggregations_btc_df = prepare_features(transactions_btc_df, aggregations_btc_df, cols_dict)
-transactions_aggregations_btc_df.coalesce(1).write.parquet(output_dir, compression="zstd", mode="append" )
+transactions_aggregations_eth_df = prepare_features(transactions_eth_df, aggregations_eth_df, cols_dict) 
 
-transactions_aggregations_eth_df = prepare_features(transactions_eth_df, aggregations_eth_df, cols_dict)
+transactions_aggregations_btc_df.coalesce(1).write.parquet(output_dir, compression="zstd", mode="append" )
 transactions_aggregations_eth_df.coalesce(1).write.parquet(output_dir, compression="zstd", mode="append" )
+
+output_dir = "data/historical/features/scaled"
+
+transactions_aggregations_btc_scaled_df = scale_numeric_variables(cols_dict["transactions_numeric"] + cols_dict["aggregations_numeric"], transactions_aggregations_btc_df)  
+transactions_aggregations_eth_scaled_df = scale_numeric_variables(cols_dict["transactions_numeric"] + cols_dict["aggregations_numeric"], transactions_aggregations_eth_df)
+
+transactions_aggregations_btc_scaled_df.coalesce(1).write.parquet(output_dir, compression="zstd", mode="append" )
+transactions_aggregations_eth_scaled_df.coalesce(1).write.parquet(output_dir, compression="zstd", mode="append" )
+
+
+transactions_eth_df = spark.read.parquet("data/benchmark/etl/transactions").filter(col("network_name") == "ethereum")
+aggregations_eth_df = spark.read.parquet("data/benchmark/aggregations").filter(col("network_name") == "ethereum")
+
+output_dir = "data/benchmark/features/unscaled"
+
+transactions_aggregations_eth_df = prepare_features(transactions_eth_df, aggregations_eth_df, cols_dict) 
+
+transactions_aggregations_eth_df.coalesce(1).write.parquet(output_dir, compression="zstd", mode="append" )
+
+output_dir = "data/benchmark/features/scaled"
+
+transactions_aggregations_eth_scaled_df = scale_numeric_variables(cols_dict["transactions_numeric"] + cols_dict["aggregations_numeric"], transactions_aggregations_eth_df)
+transactions_aggregations_eth_scaled_df.coalesce(1).write.parquet(output_dir, compression="zstd", mode="append" )
 
 
 spark.stop()

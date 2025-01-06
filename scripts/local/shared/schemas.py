@@ -350,7 +350,7 @@ joined_scaled_schema = StructType(
     ]
 )
 
-ml_schema = StructType(
+features_schema_scaled = StructType(
     [
         StructField("block_timestamp", FloatType(), False),
         StructField("block_number", FloatType(), False),

@@ -8,9 +8,14 @@ variable "bdp_wallets_aggregations_bucket" {
   description = "Wallets aggregations bucket name"
 }
 
-variable "bdp_features_bucket" {
+variable "bdp_scaled_features_bucket" {
   type        = string
-  description = "Features bucket name"
+  description = "Scaled features bucket name"
+}
+
+variable "bdp_unscaled_features_bucket" {
+  type        = string
+  description = "Unscaled features bucket name"
 }
 
 variable "glue_role_arn" {

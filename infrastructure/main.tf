@@ -12,7 +12,8 @@ module "glue_catalog" {
   glue_role_arn                   = module.iam.glue_role_arn
   bdp_cleaned_transactions_bucket = module.s3_buckets.bdp_cleaned_transactions_bucket
   bdp_wallets_aggregations_bucket = module.s3_buckets.bdp_wallets_aggregations_bucket
-  bdp_features_bucket             = module.s3_buckets.bdp_features_bucket
+  bdp_scaled_features_bucket      = module.s3_buckets.bdp_scaled_features_bucket
+  bdp_unscaled_features_bucket    = module.s3_buckets.bdp_unscaled_features_bucket
 }
 
 module "iam_github_role" {
