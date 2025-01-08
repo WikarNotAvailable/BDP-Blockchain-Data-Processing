@@ -1,12 +1,13 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col
-from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.metrics import confusion_matrix, classification_report, ConfusionMatrixDisplay
 from sklearn.ensemble import RandomForestClassifier, IsolationForest
 from sklearn.feature_selection import SelectFromModel
 from sklearn.model_selection import train_test_split
 from scripts.local.shared.schemas import features_schema_scaled
 import joblib
 import numpy as np
+import matplotlib.pyplot as plt
 
 def feature_selection_with_random_forest(benchmark, features, label_column):
     benchmark_data = benchmark.select(features).toPandas()
@@ -57,11 +58,18 @@ def validate_model(model, test_data, selected_features, label_col):
     y_true = test_data.select(col(label_col)).toPandas().iloc[:, 0].map({True: -1, False: 1})
 
     y_pred = model.predict(X_test)
-
+    cm = confusion_matrix(y_true, y_pred)
     print("Confusion Matrix:")
-    print(confusion_matrix(y_true, y_pred))
+    print(cm)
     print("\nClassification Report:")
     print(classification_report(y_true, y_pred))
+
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=["Anomaly", "Normal"])
+
+    plt.figure(figsize=(6, 6))
+    disp.plot(cmap="Blues", colorbar=True)
+    plt.title("Confusion Matrix")
+    plt.show()
 
 spark = (SparkSession.builder 
     .appName("BlockchainFeatureSelection") 
@@ -80,7 +88,7 @@ benchmark = spark.read.parquet(unscaled_benchmark_file_path)
 selected_features = feature_selection_with_random_forest(benchmark, features, label_column_name)
 
 
-data = spark.read.parquet(unscaled_parquet_file_path).select(*selected_features).limit(1000000).na.drop().toPandas()
+data = spark.read.parquet(unscaled_parquet_file_path).select(*selected_features).limit(10000000).na.drop().toPandas()
 model = train_isolation_forest(data, None, contamination=0.0069, n_estimators=690, max_samples=69000)
 
 joblib.dump(model, "isolation_forest_model.joblib")
