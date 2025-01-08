@@ -1,6 +1,6 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col
-from sklearn.metrics import confusion_matrix, classification_report, ConfusionMatrixDisplay
+from sklearn.metrics import confusion_matrix, classification_report, ConfusionMatrixDisplay, recall_score, f1_score, accuracy_score
 from sklearn.ensemble import RandomForestClassifier, IsolationForest
 from sklearn.feature_selection import SelectFromModel
 from sklearn.model_selection import train_test_split
@@ -64,6 +64,16 @@ def validate_model(model, test_data, selected_features, label_col):
     print("\nClassification Report:")
     print(classification_report(y_true, y_pred))
 
+    tn, fp, fn, tp = cm.ravel()
+    specificity = tn / (tn + fp)
+    recall = recall_score(y_true, y_pred)
+    f1 = f1_score(y_true, y_pred)
+    accuracy = accuracy_score(y_true, y_pred)
+    print(f"Specificity: {specificity}")
+    print(f"Recall: {recall}")
+    print(f"F1: {f1}")
+    print(f"Accuracy: {accuracy}")
+    
     disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=["Anomaly", "Normal"])
 
     plt.figure(figsize=(6, 6))
@@ -88,7 +98,7 @@ benchmark = spark.read.parquet(unscaled_benchmark_file_path)
 selected_features = feature_selection_with_random_forest(benchmark, features, label_column_name)
 
 
-data = spark.read.parquet(unscaled_parquet_file_path).select(*selected_features).limit(10000000).na.drop().toPandas()
+data = spark.read.parquet(unscaled_parquet_file_path).select(*selected_features).limit(100000).na.drop().toPandas()
 model = train_isolation_forest(data, None, contamination=0.0069, n_estimators=690, max_samples=69000)
 
 joblib.dump(model, "isolation_forest_model.joblib")
