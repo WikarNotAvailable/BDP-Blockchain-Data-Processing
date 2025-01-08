@@ -89,8 +89,8 @@ spark = (SparkSession.builder
     .config("spark.driver.memory", "16g")
     .getOrCreate())
 
-unscaled_parquet_file_path = "C:/Users/jakub/Desktop/Universe/Studia/Magisterka/PBL/Repository/data/historical/features/unscaled/"
-unscaled_benchmark_file_path = "C:/Users/jakub/Desktop/Universe/Studia/Magisterka/PBL/Repository/data/benchmark/features/unscaled/"
+unscaled_parquet_file_path = "data/historical/features/unscaled/"
+unscaled_benchmark_file_path = "data/benchmark/features/unscaled/"
 label_column_name = "label"
 features = [field.name for field in features_schema_scaled.fields if field.dataType.simpleString() == "float" ]
 
@@ -98,7 +98,7 @@ benchmark = spark.read.parquet(unscaled_benchmark_file_path)
 selected_features = feature_selection_with_random_forest(benchmark, features, label_column_name)
 
 
-data = spark.read.parquet(unscaled_parquet_file_path).select(*selected_features).limit(100000).na.drop().toPandas()
+data = spark.read.parquet(unscaled_parquet_file_path).select(*selected_features).limit(1000000).na.drop().toPandas()
 model = train_isolation_forest(data, None, contamination=0.0069, n_estimators=690, max_samples=69000)
 
 joblib.dump(model, "isolation_forest_model.joblib")
