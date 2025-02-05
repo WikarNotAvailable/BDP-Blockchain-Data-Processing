@@ -10,8 +10,12 @@ output "bdp_cleaned_transactions_bucket" {
   value = aws_s3_bucket.bdp_cleaned_transactions.bucket
 }
 
-output "bdp_features_bucket" {
-  value = aws_s3_bucket.bdp_features.bucket
+output "bdp_scaled_features_bucket" {
+  value = aws_s3_bucket.bdp_scaled_features.bucket
+}
+
+output "bdp_unscaled_features_bucket" {
+  value = aws_s3_bucket.bdp_unscaled_features.bucket
 }
 
 output "bdp_metadata_bucket" {
