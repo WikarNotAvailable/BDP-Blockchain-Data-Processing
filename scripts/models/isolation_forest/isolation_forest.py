@@ -4,7 +4,7 @@ from sklearn.metrics import confusion_matrix, classification_report, ConfusionMa
 from sklearn.ensemble import RandomForestClassifier, IsolationForest
 from sklearn.feature_selection import SelectFromModel
 from sklearn.model_selection import train_test_split
-from scripts.local.shared.schemas import features_schema_scaled
+from scripts.local.shared.schemas import ml_schema
 import joblib
 import numpy as np
 import matplotlib.pyplot as plt
@@ -92,7 +92,7 @@ spark = (SparkSession.builder
 unscaled_parquet_file_path = "data/historical/features/unscaled/"
 unscaled_benchmark_file_path = "data/benchmark/features/unscaled/"
 label_column_name = "label"
-features = [field.name for field in features_schema_scaled.fields if field.dataType.simpleString() == "float" ]
+features = [field.name for field in ml_schema.fields if field.dataType.simpleString() == "float" ]
 
 benchmark = spark.read.parquet(unscaled_benchmark_file_path)
 selected_features = feature_selection_with_random_forest(benchmark, features, label_column_name)
