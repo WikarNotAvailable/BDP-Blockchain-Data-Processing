@@ -459,7 +459,7 @@ transactions_aggregations_btc_df = prepare_features(transactions_btc_df, aggrega
 glueContext.write_data_frame.from_catalog(
     frame=transactions_aggregations_btc_df,
     database="bdp",
-    table_name="unscaled_features",
+    table_name="unscaled_features_inference",
     additional_options = {
         "useCatalogSchema": True,
         "useSparkDataSource": True
@@ -470,7 +470,7 @@ transactions_aggregations_btc_scaled_df = scale_numeric_variables(cols_dict["tra
 glueContext.write_data_frame.from_catalog(
     frame=transactions_aggregations_btc_scaled_df,
     database="bdp",
-    table_name="scaled_features",
+    table_name="scaled_features_inference",
     additional_options = {
         "useCatalogSchema": True,
         "useSparkDataSource": True
@@ -481,7 +481,7 @@ transactions_aggregations_eth_df = prepare_features(transactions_eth_df, aggrega
 glueContext.write_data_frame.from_catalog(
     frame=transactions_aggregations_eth_df,
     database="bdp",
-    table_name="unscaled_features",
+    table_name="unscaled_features_inference",
     additional_options = {
         "useCatalogSchema": True,
         "useSparkDataSource": True
@@ -492,7 +492,7 @@ transactions_aggregations_eth_scaled_df = scale_numeric_variables(cols_dict["tra
 glueContext.write_data_frame.from_catalog(
     frame=transactions_aggregations_eth_scaled_df,
     database="bdp",
-    table_name="scaled_features",
+    table_name="scaled_features_inference",
     additional_options = {
         "useCatalogSchema": True,
         "useSparkDataSource": True
