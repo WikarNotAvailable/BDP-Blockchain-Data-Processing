@@ -89,7 +89,7 @@ def setup_iceberg_table(spark):
         unique_in_degree FLOAT
     )                                                                      
     PARTITIONED BY (network_name)
-    LOCATION 's3://bdp-scaled-features'
+    LOCATION 's3://bdp-scaled-features-inference'
     TBLPROPERTIES (
         'table_type' = 'ICEBERG',
         'write.format.default' = 'parquet',
@@ -166,7 +166,7 @@ def setup_iceberg_table(spark):
         unique_in_degree BIGINT
     )                                                                      
     PARTITIONED BY (network_name)
-    LOCATION 's3://bdp-unscaled-features'
+    LOCATION 's3://bdp-unscaled-features-inference'
     TBLPROPERTIES (
         'table_type' = 'ICEBERG',
         'write.format.default' = 'parquet',
