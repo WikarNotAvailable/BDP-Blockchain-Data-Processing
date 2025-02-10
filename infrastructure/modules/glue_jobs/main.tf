@@ -155,7 +155,7 @@ resource "aws_glue_job" "anomaly_classification" {
   role_arn = var.glue_role_arn
   command {
     name            = "glueetl"
-    script_location = "s3://${var.glue_script_bucket}/convert_features_to_csv_inference.py"
+    script_location = "s3://${var.glue_script_bucket}/detect_anomaly.py"
     python_version  = "3"
   }
 
