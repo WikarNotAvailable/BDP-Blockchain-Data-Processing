@@ -17,6 +17,10 @@ resource "aws_glue_catalog_database" "bdp_db" {
     name = "network_name"
     type = "string"
   }
+   partition_keys {
+    name = "day(block_timestamp)"
+    type = "timestamp"
+  }
 
   parameters = {
     "write.format.default"            = "parquet"
@@ -136,6 +140,10 @@ resource "aws_glue_catalog_table_optimizer" "cleaned_transactions_compaction_opt
   partition_keys {
     name = "network_name"
     type = "string"
+  }
+  partition_keys {
+    name = "day(last_transaction_timestamp)"
+    type = "timestamp"
   }
 
   parameters = {
@@ -1012,6 +1020,104 @@ resource "aws_glue_catalog_table_optimizer" "unscaled_features_compaction_optimi
   catalog_id    = "982534349340"
   database_name = aws_glue_catalog_database.bdp_db.name
   table_name    = "unscaled_features"
+  type          = "compaction"
+
+  configuration {
+    role_arn = var.glue_role_arn
+    enabled  = true
+  }
+}
+
+/*resource "aws_glue_catalog_table" "anomaly_detection" {
+  database_name = aws_glue_catalog_database.bdp_db.name
+  name          = "anomaly_detection"
+  table_type    = "EXTERNAL_TABLE"
+
+  open_table_format_input {
+    iceberg_input {
+      metadata_operation = "CREATE"
+    }
+  }
+  //Commented because https://github.com/hashicorp/terraform-provider-aws/issues/36531
+  partition_keys {
+    name = "network_name"
+    type = "string"
+  }
+
+  partition_keys {
+    name = "day(block_timestamp_unscaled)"
+    type = "timestamp"
+  }
+
+  parameters = {
+    "write.format.default"            = "parquet"
+    "write.parquet.compression-codec" = "zstd"
+  }
+
+  storage_descriptor {
+    location      = "s3://${var.bdp_anomaly_detection_bucket}"
+    input_format  = "org.apache.hadoop.mapred.FileInputFormat"
+    output_format = "org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat"
+    compressed    = true
+
+    ser_de_info {
+      name                  = "anomaly_detection_serde"
+      serialization_library = "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe"
+    }
+
+
+    columns {
+      name = "transaction_hash"
+      type = "string"
+    }
+    columns {
+      name = "sender_address"
+      type = "string"
+    }
+    columns {
+      name = "receiver_address"
+      type = "string"
+    }
+    columns {
+      name = "block_timestamp_unscaled"
+      type = "timestamp"
+    }
+    columns {
+      name = "network_name"
+      type = "string"
+    }
+    columns {
+      name = "is_anomaly"
+      type = "boolean"
+    }
+    
+    }
+  }
+}*/
+
+resource "aws_glue_catalog_table_optimizer" "anomaly_detection_orphan_files_deletion_optimizer" {
+  catalog_id    = "982534349340"
+  database_name = aws_glue_catalog_database.bdp_db.name
+  table_name    = "anomaly_detection"
+  type          = "orphan_file_deletion"
+
+  configuration {
+    role_arn = var.glue_role_arn
+    enabled  = true
+
+    orphan_file_deletion_configuration {
+      iceberg_configuration {
+        orphan_file_retention_period_in_days = 2
+        location                             = "s3://${var.bdp_anomaly_detection_bucket}"
+      }
+    }
+  }
+}
+
+resource "aws_glue_catalog_table_optimizer" "anomaly_detection_compaction_optimizer" {
+  catalog_id    = "982534349340"
+  database_name = aws_glue_catalog_database.bdp_db.name
+  table_name    = "anomaly_detection"
   type          = "compaction"
 
   configuration {

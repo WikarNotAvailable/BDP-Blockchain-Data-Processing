@@ -10,6 +10,12 @@ variable "glue_role_name" {
   description = " IAM role for Glue"
 }
 
+variable "sagemaker_execution_role_name" {
+  type        = string
+  default     = "AmazonSageMaker-ExecutionRole-20250102T163562"
+  description = " IAM role for Sagemaker execution"
+}
+
 variable "glue_jobs_default_arguments" {
   type = map(string)
   default = {
@@ -21,7 +27,6 @@ variable "glue_jobs_default_arguments" {
     "--enable-glue-datacatalog"          = "true"
     "--enable-continuous-cloudwatch-log" = "true"
     "--job-bookmark-option"              = "job-bookmark-disable"
-    "--datalake-formats"                 = "iceberg"
     "--job-language"                     = "python"
     "--TempDir"                          = "s3://aws-glue-assets-982534349340-eu-north-1/temporary/"
     "--enable-auto-scaling"              = "true"
