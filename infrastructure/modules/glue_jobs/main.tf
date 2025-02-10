@@ -15,6 +15,10 @@ locals {
     "--additional-python-modules"       = "s3://bdp-glue-scripts/requirements.txt"
   }
 
+  anomaly_classification_arguments = {
+    "--QUANTILE" = 0.673
+  }
+
 }
 
 resource "aws_glue_job" "transactions_cleaning" {
@@ -143,5 +147,21 @@ resource "aws_glue_job" "convert_parquet_to_csv_for_visualisation" {
   number_of_workers = 10
   glue_version      = "5.0"
   default_arguments = var.default_arguments
+  timeout           = 120
+}
+
+resource "aws_glue_job" "anomaly_classification" {
+  name     = "Anomaly Classification"
+  role_arn = var.glue_role_arn
+  command {
+    name            = "glueetl"
+    script_location = "s3://${var.glue_script_bucket}/convert_features_to_csv_inference.py"
+    python_version  = "3"
+  }
+
+  worker_type       = "G.1X"
+  number_of_workers = 10
+  glue_version      = "5.0"
+  default_arguments = merge(var.default_arguments, local.anomaly_classification_arguments)
   timeout           = 120
 }

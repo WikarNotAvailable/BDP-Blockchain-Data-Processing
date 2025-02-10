@@ -1,3 +1,7 @@
+resource "aws_s3_bucket" "bdp_anomaly_detection" {
+  bucket = "bdp-anomaly-detection"
+}
+
 resource "aws_s3_bucket" "bdp_athena_results" {
   bucket = "bdp-athena-results"
 }

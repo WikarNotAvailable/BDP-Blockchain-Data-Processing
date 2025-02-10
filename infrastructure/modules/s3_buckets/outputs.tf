@@ -1,3 +1,7 @@
+output "bdp_anomaly_detection_bucket" {
+  value = aws_s3_bucket.bdp_anomaly_detection.bucket
+}
+
 output "bdp_athena_results_bucket" {
   value = aws_s3_bucket.bdp_athena_results.bucket
 }

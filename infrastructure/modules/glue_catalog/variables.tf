@@ -18,6 +18,11 @@ variable "bdp_unscaled_features_bucket" {
   description = "Unscaled features bucket name"
 }
 
+variable "bdp_anomaly_detection_bucket" {
+  type        = string
+  description = "Anomaly detection bucket name"
+}
+
 variable "glue_role_arn" {
   type        = string
   description = "ARN of IAM role for Glue"
