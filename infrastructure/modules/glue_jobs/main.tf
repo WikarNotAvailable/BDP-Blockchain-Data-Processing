@@ -16,7 +16,7 @@ locals {
   }
 
   anomaly_classification_arguments = {
-    "--QUANTILE" = 0.673
+    "--QUANTILE" = 0.99
   }
 
 }
